@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>아기 그린이 지키기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="no-select">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 비네트 효과 -->
+    <div
+      id="vignette"
+      class="absolute inset-0 pointer-events-none z-10"
+      style="
+        background: radial-gradient(
+          circle at center,
+          transparent 50%,
+          rgba(20, 30, 10, 0.4) 120%
+        );
+      "
+    ></div>
+    <div
+      id="damageOverlay"
+      class="absolute inset-0 z-10 pointer-events-none"
+    ></div>
+
+    <!-- UI: 가상 D-Pad (콘솔 모드 전용) -->
+    <div
+      id="ui-dpad"
+      class="absolute bottom-6 left-6 z-20 hidden flex-col items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
+    >
+      <button
+        id="btn-up"
+        class="w-14 h-14 bg-gray-800 border-2 border-gray-600 text-white rounded-lg text-2xl font-bold shadow-lg flex items-center justify-center active:bg-gray-600 select-none"
+      >
+        ▲
+      </button>
+      <div class="flex gap-1">
+        <button
+          id="btn-left"
+          class="w-14 h-14 bg-gray-800 border-2 border-gray-600 text-white rounded-lg text-2xl font-bold shadow-lg flex items-center justify-center active:bg-gray-600 select-none"
+        >
+          ◀
+        </button>
+        <button
+          id="btn-down"
+          class="w-14 h-14 bg-gray-800 border-2 border-gray-600 text-white rounded-lg text-2xl font-bold shadow-lg flex items-center justify-center active:bg-gray-600 select-none"
+        >
+          ▼
+        </button>
+        <button
+          id="btn-right"
+          class="w-14 h-14 bg-gray-800 border-2 border-gray-600 text-white rounded-lg text-2xl font-bold shadow-lg flex items-center justify-center active:bg-gray-600 select-none"
+        >
+          ▶
+        </button>
+      </div>
+    </div>
+
+    <!-- UI: 메인 메뉴 (배경 블러 및 반투명 효과로 컨텍스트 강화) -->
+    <div
+      id="ui-intro"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 transition-opacity duration-300"
+    >
+      <div
+        id="intro-box"
+        class="stardew-box text-center p-6 max-w-sm w-11/12 max-h-[95vh] overflow-y-auto transition-colors duration-300 shadow-2xl"
+      >
+        <h1
+          id="desc-theme-title"
+          class="text-2xl text-orange-900 mb-1 font-bold tracking-widest drop-shadow-sm mt-2"
+        >
+          그린이의 농장 방어
+        </h1>
+        <p id="desc-theme-sub" class="text-yellow-900 mb-6 font-bold text-xs">
+          해충들로부터 농장을 지키세요!
+        </p>
+
+        <div class="flex flex-col gap-3">
+          <button
+            id="btn-mode-story"
+            class="stardew-btn w-full font-bold py-3 px-6 text-lg"
+          >
+            스토리 모드
+          </button>
+          <button
+            id="btn-mode-ranking"
+            class="stardew-btn stardew-btn-blue w-full font-bold py-3 px-6 text-lg"
+          >
+            무한 생존 (랭킹)
+          </button>
+          <button
+            id="btn-mode-moving"
+            class="stardew-btn stardew-btn-red w-full font-bold py-3 px-6 text-lg"
+          >
+            액션 생존 (무빙)
+          </button>
+        </div>
+
+        <div
+          id="desc-enemy-box"
+          class="text-left bg-orange-50/50 p-3 mt-4 text-xs text-yellow-900 border-2 border-orange-200 rounded-lg"
+        >
+          <p class="mb-1">
+            <span id="icon-normal">🦟</span>
+            <strong id="desc-enemy-normal">동굴 파리:</strong> 1회 터치
+          </p>
+          <p class="mb-1">
+            <span id="icon-tanker">🟩</span>
+            <strong id="desc-enemy-tanker">초록 슬라임:</strong>
+            <span id="desc-enemy-tanker-touch">3회 터치</span>
+          </p>
+          <p>⌨️ <strong>이동:</strong> 방향키 / WASD 지원</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI: 설정 버튼 -->
+    <button
+      id="btn-settings-fab"
+      class="absolute bottom-6 right-6 w-14 h-14 bg-orange-100 hover:bg-orange-200 border-4 border-orange-300 rounded-full shadow-[0_4px_0_#b7772f] flex items-center justify-center text-2xl transition-all duration-300 active:scale-90 z-30"
+    >
+      ⚙️
+    </button>
+
+    <!-- UI: 설정 모달 -->
+    <div
+      id="ui-settings-modal"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 hidden backdrop-blur-[2px]"
+    >
+      <div
+        id="settings-modal-box"
+        class="stardew-box w-10/12 max-w-sm p-6 relative"
+      >
+        <button
+          id="btn-close-settings"
+          class="absolute top-2 right-3 text-3xl font-bold text-gray-600 hover:text-gray-900"
+        >
+          &times;
+        </button>
+        <h2
+          id="settings-title"
+          class="text-xl text-orange-900 mb-4 font-bold text-center border-b-2 border-orange-200 pb-2"
+        >
+          게임 설정
+        </h2>
+        <div class="flex flex-col gap-2">
+          <div
+            id="settings-theme-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span
+              id="label-theme-title"
+              class="text-sm font-bold text-yellow-900"
+              >🎨 테마 모드</span
+            >
+            <div class="flex items-center gap-2">
+              <span id="label-farm" class="text-xs font-bold text-green-800"
+                >🌻</span
+              >
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="theme-toggle" class="sr-only peer" />
+                <div
+                  class="w-10 h-5 bg-green-500 rounded-full peer-checked:bg-purple-800"
+                ></div>
+              </label>
+              <span id="label-zombie" class="text-xs font-bold text-gray-500"
+                >🧟</span
+              >
+            </div>
+          </div>
+          <div
+            id="settings-sound-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span
+              id="label-sound-title"
+              class="text-sm font-bold text-yellow-900"
+              >🔇 소리 음소거</span
+            >
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="mute-toggle" class="sr-only peer" />
+              <div
+                class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-red-500"
+              ></div>
+            </label>
+          </div>
+          <div
+            id="settings-console-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span
+              id="label-console-title"
+              class="text-sm font-bold text-yellow-900"
+              >🎮 콘솔 모드 (회피)</span
+            >
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="console-toggle" class="sr-only peer" />
+              <div
+                class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-blue-600"
+              ></div>
+            </label>
+          </div>
+          <div
+            id="settings-hp-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span id="label-tanker-hp" class="text-sm font-bold text-yellow-900"
+              >🧌 거대 몬스터 HP</span
+            >
+            <div class="flex items-center gap-2">
+              <button
+                id="btn-hp-minus"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                -
+              </button>
+              <span
+                id="val-tanker-hp"
+                class="font-mono font-bold w-4 text-center"
+                >3</span
+              >
+              <button
+                id="btn-hp-plus"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div
+            id="settings-diff-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span
+              id="label-difficulty"
+              class="text-sm font-bold text-yellow-900"
+              >🔥 게임 난이도</span
+            >
+            <div class="flex items-center gap-2">
+              <button
+                id="btn-diff-minus"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                -
+              </button>
+              <span
+                id="val-difficulty"
+                class="font-mono font-bold w-4 text-center"
+                >5</span
+              >
+              <button
+                id="btn-diff-plus"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI: 일시정지 모달 -->
+    <div
+      id="ui-pause-modal"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 hidden"
+    >
+      <div
+        class="stardew-box text-center p-8 max-w-sm w-11/12 border-orange-800 bg-[#ffebd6]"
+      >
+        <h2 class="text-3xl text-orange-900 mb-6 font-bold">일시정지</h2>
+        <div class="flex flex-col gap-3">
+          <button
+            id="btn-resume-game"
+            class="stardew-btn w-full font-bold py-3 px-6 text-lg"
+          >
+            계속하기 (ESC)
+          </button>
+          <button
+            id="btn-quit-game"
+            class="stardew-btn stardew-btn-red w-full font-bold py-3 px-6 text-lg"
+          >
+            포기하고 홈으로
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI: 스토리 시놉시스 -->
+    <div
+      id="story-overlay"
+      class="absolute inset-0 bg-black/20 z-30 hidden transition-opacity duration-300"
+    ></div>
+    <div
+      id="ui-story-dialog-box"
+      class="absolute bottom-0 left-0 right-0 h-auto min-h-[180px] bg-gradient-to-b from-pink-100 to-pink-200 border-t-4 border-pink-300 p-6 z-40 hidden flex flex-col justify-between shadow-[0_-4px_10px_rgba(0,0,0,0.1)] transition-all duration-300 translate-y-full"
+    >
+      <div>
+        <h2 id="story-speaker" class="text-xl text-pink-900 mb-2 font-bold">
+          [그린이]
+        </h2>
+        <p
+          id="story-text"
+          class="text-pink-800 text-lg font-medium leading-relaxed"
+        >
+          ...
+        </p>
+      </div>
+      <button
+        id="btn-start-stage"
+        class="self-end stardew-btn py-2 px-6 text-lg shadow-[0_4px_0_#5a3111] mt-4"
+      >
+        다음 ▶
+      </button>
+    </div>
+
+    <!-- UI: HUD -->
+    <div
+      id="ui-hud"
+      class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-10 hidden pointer-events-none"
+    >
+      <div class="stardew-box px-5 py-2 flex flex-col items-center border-4">
+        <span id="hud-time-label" class="text-yellow-900 text-xs mb-1 font-bold"
+          >시간</span
+        >
+        <span id="hud-time" class="text-3xl text-orange-700">15.0</span>
+      </div>
+      <div class="stardew-box px-5 py-2 flex flex-col items-center border-4">
+        <span class="text-yellow-900 text-xs mb-1 font-bold">처치</span>
+        <span id="hud-kills" class="text-2xl text-orange-900 font-bold">0</span>
+      </div>
+    </div>
+
+    <!-- UI: 게임 결과 -->
+    <div
+      id="ui-gameover"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/80 z-30 hidden backdrop-blur-sm"
+    >
+      <div
+        class="stardew-box text-center p-6 max-w-sm w-11/12 border-red-800 bg-[#ffebd6]"
+      >
+        <h2 class="text-4xl text-red-600 mb-2 font-bold">기절했습니다</h2>
+        <p class="text-red-900 mb-4 font-bold">병원으로 이송되었습니다...</p>
+        <div class="bg-white/50 p-4 mb-4 border-2 border-red-200 rounded-lg">
+          <div class="flex justify-between mb-2">
+            <span class="text-orange-900 text-sm font-bold">버틴 시간</span
+            ><span id="result-time-lose" class="text-red-600 text-sm font-bold"
+              >0.0초</span
+            >
+          </div>
+          <div class="flex justify-between">
+            <span class="text-orange-900 text-sm font-bold">처치 수</span
+            ><span
+              id="result-kills-lose"
+              class="text-orange-900 text-sm font-bold"
+              >0</span
+            >
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button
+            id="btn-restart-lose"
+            class="stardew-btn stardew-btn-red flex-1 font-bold py-3 text-sm"
+          >
+            재도전
+          </button>
+          <button
+            id="btn-home-lose"
+            class="stardew-btn stardew-btn-light flex-1 font-bold py-3 text-sm"
+          >
+            홈으로
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="ui-win"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-green-900/80 z-30 hidden backdrop-blur-sm"
+    >
+      <div
+        class="stardew-box text-center p-8 max-w-sm w-11/12 border-green-700"
+      >
+        <h2 id="win-title" class="text-3xl text-green-700 mb-2 font-bold">
+          방어 성공!
+        </h2>
+        <p id="win-sub" class="text-green-900 mb-6 font-bold">
+          농장을 지켰습니다!
+        </p>
+        <div class="bg-white/50 p-5 mb-6 border-2 border-green-200 rounded-lg">
+          <div
+            class="flex justify-between mb-3 items-end border-b-2 border-green-200 pb-2"
+          >
+            <span class="text-green-900 font-bold">총 수익</span
+            ><span id="result-score" class="text-3xl text-orange-600 font-bold"
+              >0</span
+            >
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button
+            id="btn-restart-win"
+            class="stardew-btn stardew-btn-blue flex-1 font-bold py-3 text-sm"
+          >
+            다음 날
+          </button>
+          <button
+            id="btn-home-win"
+            class="stardew-btn stardew-btn-light flex-1 font-bold py-3 text-sm"
+          >
+            홈으로
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>

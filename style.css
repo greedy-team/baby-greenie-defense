@@ -1,0 +1,116 @@
+@font-face {
+        font-family: "DungGeunMo";
+        src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff")
+          format("woff");
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #f0fdf4;
+        touch-action: none;
+        font-family: "DungGeunMo", monospace;
+      }
+
+      canvas {
+        display: block;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+
+      .no-select {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @keyframes heartbeat {
+        0% {
+          transform: scale(1);
+        }
+        10% {
+          transform: scale(1.05);
+        }
+        20% {
+          transform: scale(1);
+        }
+        30% {
+          transform: scale(1.05);
+        }
+        40% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .danger-pulse {
+        animation: heartbeat 0.5s infinite;
+        color: #b91c1c;
+      }
+
+      .stardew-box {
+        background-color: #fcefb4;
+        border: 6px solid #b7772f;
+        border-radius: 8px;
+        box-shadow:
+          inset 0 0 10px rgba(139, 69, 19, 0.2),
+          0 8px 0px rgba(0, 0, 0, 0.3);
+        color: #4a2c11;
+      }
+      .stardew-btn {
+        background-color: #d97736;
+        border: 4px solid #5a3111;
+        border-radius: 8px;
+        box-shadow:
+          0 4px 0px #5a3111,
+          0 8px 6px rgba(0, 0, 0, 0.3);
+        color: #ffffff;
+        text-shadow: 1px 1px 0px #5a3111;
+        transition: all 0.1s;
+      }
+      .stardew-btn:active {
+        transform: translate(0, 4px);
+        box-shadow:
+          0 0px 0px #5a3111,
+          0 2px 2px rgba(0, 0, 0, 0.3);
+      }
+      .stardew-btn-red {
+        background-color: #dc2626;
+        border-color: #7f1d1d;
+        box-shadow:
+          0 4px 0px #7f1d1d,
+          0 8px 6px rgba(0, 0, 0, 0.3);
+      }
+      .stardew-btn-blue {
+        background-color: #2563eb;
+        border-color: #1e3a8a;
+        box-shadow:
+          0 4px 0px #1e3a8a,
+          0 8px 6px rgba(0, 0, 0, 0.3);
+      }
+      .stardew-btn-light {
+        background-color: #fde047;
+        border-color: #ca8a04;
+        color: #4a2c11;
+        text-shadow: none;
+        box-shadow:
+          0 4px 0px #ca8a04,
+          0 8px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      #damageOverlay {
+        pointer-events: none;
+        transition: opacity 0.2s ease-out;
+        opacity: 0;
+        background: radial-gradient(
+          circle,
+          transparent 50%,
+          rgba(255, 0, 0, 0.4) 100%
+        );
+      }
