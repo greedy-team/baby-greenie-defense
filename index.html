@@ -130,7 +130,7 @@
     >
       <div
         id="settings-modal-box"
-        class="stardew-box w-10/12 max-w-sm p-6 relative"
+        class="stardew-box w-10/12 max-w-sm max-h-[90vh] overflow-y-auto p-6 relative"
       >
         <button
           id="btn-close-settings"
@@ -147,173 +147,334 @@
         <div class="flex flex-col gap-2">
           <div
             id="settings-theme-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-theme-title"
-              class="text-sm font-bold text-yellow-900"
-              >🎨 테마 모드</span
-            >
-            <div class="flex items-center gap-2">
-              <span id="label-farm" class="text-xs font-bold text-green-800"
-                >🌻</span
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-theme-title"
+                class="text-sm font-bold text-yellow-900"
+                >🎨 테마 모드</span
               >
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="theme-toggle" class="sr-only peer" />
-                <div
-                  class="w-10 h-5 bg-green-500 rounded-full peer-checked:bg-purple-800"
-                ></div>
-              </label>
-              <span id="label-zombie" class="text-xs font-bold text-gray-500"
-                >🧟</span
-              >
+              <div class="flex items-center gap-2">
+                <span id="label-farm" class="text-xs font-bold text-green-800"
+                  >🌻</span
+                >
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="theme-toggle"
+                    class="sr-only peer"
+                  />
+                  <div
+                    class="w-10 h-5 bg-green-500 rounded-full peer-checked:bg-purple-800"
+                  ></div>
+                </label>
+                <span id="label-zombie" class="text-xs font-bold text-gray-500"
+                  >🧟</span
+                >
+              </div>
             </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              배경과 몬스터 분위기를 농장 테마 또는 좀비 테마로 바꿉니다.
+            </p>
           </div>
           <div
             id="settings-sound-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-sound-title"
-              class="text-sm font-bold text-yellow-900"
-              >🔇 소리 음소거</span
-            >
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="mute-toggle" class="sr-only peer" />
-              <div
-                class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-red-500"
-              ></div>
-            </label>
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-sound-title"
+                class="text-sm font-bold text-yellow-900"
+                >🔇 소리 음소거</span
+              >
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="mute-toggle" class="sr-only peer" />
+                <div
+                  class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-red-500"
+                ></div>
+              </label>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              효과음을 끄고 조용히 플레이할 수 있습니다.
+            </p>
           </div>
           <div
             id="settings-console-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-console-title"
-              class="text-sm font-bold text-yellow-900"
-              >🎮 콘솔 모드 (회피)</span
-            >
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="console-toggle" class="sr-only peer" />
-              <div
-                class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-blue-600"
-              ></div>
-            </label>
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-console-title"
+                class="text-sm font-bold text-yellow-900"
+                >🎮 콘솔 모드 (회피)</span
+              >
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="console-toggle"
+                  class="sr-only peer"
+                />
+                <div
+                  class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-blue-600"
+                ></div>
+              </label>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              터치 대신 자동 공격과 방향키 이동 중심으로 플레이합니다.
+            </p>
           </div>
           <div
             id="settings-start-mode-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-start-mode"
-              class="text-sm font-bold text-yellow-900"
-              >🚀 시작하기 모드</span
-            >
-            <div class="flex items-center gap-2">
-              <button
-                id="btn-start-mode-prev"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                -
-              </button>
+            <div class="flex items-center justify-between gap-3">
               <span
-                id="val-start-mode"
-                class="font-bold min-w-[96px] text-center text-xs"
-                >스토리 모드</span
+                id="label-start-mode"
+                class="text-sm font-bold text-yellow-900"
+                >🚀 시작하기 모드</span
               >
-              <button
-                id="btn-start-mode-next"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                +
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-start-mode-prev"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-start-mode"
+                  class="font-bold min-w-[96px] text-center text-xs"
+                  >스토리 모드</span
+                >
+                <button
+                  id="btn-start-mode-next"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
             </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              홈 화면의 시작하기 버튼이 바로 실행할 모드를 고릅니다.
+            </p>
           </div>
           <div
             id="settings-moving-life-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-moving-life"
-              class="text-sm font-bold text-yellow-900"
-              >❤️ 무빙 모드 목숨</span
-            >
-            <div class="flex items-center gap-2">
-              <button
-                id="btn-moving-life-minus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                -
-              </button>
+            <div class="flex items-center justify-between gap-3">
               <span
-                id="val-moving-life"
-                class="font-mono font-bold w-4 text-center"
-                >3</span
+                id="label-moving-life"
+                class="text-sm font-bold text-yellow-900"
+                >❤️ 액션 모드 목숨</span
               >
-              <button
-                id="btn-moving-life-plus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                +
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-moving-life-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-moving-life"
+                  class="font-mono font-bold w-4 text-center"
+                  >3</span
+                >
+                <button
+                  id="btn-moving-life-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
             </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              액션 모드에서 맞을 수 있는 횟수를 정합니다.
+            </p>
+          </div>
+          <div
+            id="settings-bomb-interval-box"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-bomb-interval"
+                class="text-sm font-bold text-yellow-900"
+                >⏳ 폭탄 충전 시간</span
+              >
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-bomb-interval-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-bomb-interval"
+                  class="font-mono font-bold min-w-[52px] text-center text-xs"
+                  >3초</span
+                >
+                <button
+                  id="btn-bomb-interval-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              액션 모드에서 폭탄 1개가 다시 채워지는 시간을 정합니다.
+            </p>
+          </div>
+          <div
+            id="settings-bomb-damage-box"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-bomb-damage"
+                class="text-sm font-bold text-yellow-900"
+                >💥 폭탄 데미지</span
+              >
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-bomb-damage-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-bomb-damage"
+                  class="font-mono font-bold min-w-[40px] text-center text-xs"
+                  >1.5</span
+                >
+                <button
+                  id="btn-bomb-damage-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              폭탄이 범위 안 적들에게 한 번에 주는 피해량입니다.
+            </p>
+          </div>
+          <div
+            id="settings-bomb-range-box"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <span
+                id="label-bomb-range"
+                class="text-sm font-bold text-yellow-900"
+                >📡 폭탄 범위</span
+              >
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-bomb-range-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-bomb-range"
+                  class="font-mono font-bold min-w-[56px] text-center text-xs"
+                  >150px</span
+                >
+                <button
+                  id="btn-bomb-range-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              폭탄이 영향을 주는 반경입니다. 넓을수록 더 많은 적을 맞힙니다.
+            </p>
           </div>
           <div
             id="settings-hp-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span id="label-tanker-hp" class="text-sm font-bold text-yellow-900"
-              >🧌 거대 몬스터 HP</span
-            >
-            <div class="flex items-center gap-2">
-              <button
-                id="btn-hp-minus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                -
-              </button>
+            <div class="flex items-center justify-between gap-3">
               <span
-                id="val-tanker-hp"
-                class="font-mono font-bold w-4 text-center"
-                >3</span
+                id="label-tanker-hp"
+                class="text-sm font-bold text-yellow-900"
+                >🧌 거대 몬스터 HP</span
               >
-              <button
-                id="btn-hp-plus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                +
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-hp-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-tanker-hp"
+                  class="font-mono font-bold w-4 text-center"
+                  >3</span
+                >
+                <button
+                  id="btn-hp-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
             </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              슬라임이나 헐크처럼 큰 적이 버티는 체력입니다.
+            </p>
           </div>
           <div
             id="settings-diff-box"
-            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+            class="bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
           >
-            <span
-              id="label-difficulty"
-              class="text-sm font-bold text-yellow-900"
-              >🔥 게임 난이도</span
-            >
-            <div class="flex items-center gap-2">
-              <button
-                id="btn-diff-minus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                -
-              </button>
+            <div class="flex items-center justify-between gap-3">
               <span
-                id="val-difficulty"
-                class="font-mono font-bold w-4 text-center"
-                >5</span
+                id="label-difficulty"
+                class="text-sm font-bold text-yellow-900"
+                >🔥 게임 난이도</span
               >
-              <button
-                id="btn-diff-plus"
-                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
-              >
-                +
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  id="btn-diff-minus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  -
+                </button>
+                <span
+                  id="val-difficulty"
+                  class="font-mono font-bold w-4 text-center"
+                  >5</span
+                >
+                <button
+                  id="btn-diff-plus"
+                  class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+                >
+                  +
+                </button>
+              </div>
             </div>
+            <p class="mt-1 text-[11px] leading-snug text-yellow-900/80">
+              적 이동 속도와 전체 압박감을 조절합니다.
+            </p>
+          </div>
+          <div class="flex gap-3 mt-2">
+            <button
+              id="btn-cancel-settings"
+              class="stardew-btn stardew-btn-light flex-1 font-bold py-3 text-sm"
+            >
+              취소
+            </button>
+            <button
+              id="btn-apply-settings"
+              class="stardew-btn stardew-btn-blue flex-1 font-bold py-3 text-sm"
+            >
+              설정 적용
+            </button>
           </div>
         </div>
       </div>
@@ -387,6 +548,43 @@
             >시간</span
           >
           <span id="hud-time" class="text-3xl text-orange-700">15.0</span>
+        </div>
+      </div>
+      <div class="absolute top-4 right-4 hidden" id="ui-action-bomb">
+        <div
+          class="stardew-box px-4 py-3 flex items-center gap-3 border-4 shadow-xl"
+        >
+          <div
+            class="w-12 h-12 flex items-center justify-center bg-orange-100 border-2 border-orange-300 rounded-md"
+          >
+            <canvas
+              id="hud-bomb-icon"
+              width="36"
+              height="36"
+              class="w-9 h-9"
+            ></canvas>
+          </div>
+          <div class="flex flex-col min-w-[132px]">
+            <span class="text-yellow-900 text-xs font-bold">액션 폭탄</span>
+            <span id="hud-bomb-count" class="text-2xl text-red-700 font-bold"
+              >0개</span
+            >
+            <span
+              id="hud-bomb-timer"
+              class="text-[11px] text-orange-900 font-bold"
+              >다음 충전 3.0초</span
+            >
+            <div class="mt-1 w-full h-3 bg-orange-200 border-2 border-orange-400">
+              <div
+                id="hud-bomb-progress"
+                class="h-full bg-red-500"
+                style="width: 0%"
+              ></div>
+            </div>
+            <span class="text-[11px] text-orange-900 font-bold mt-1"
+              >SPACE로 폭발</span
+            >
+          </div>
         </div>
       </div>
       <!-- 하단: 몬스터 처치 수 -->

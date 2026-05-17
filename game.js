@@ -10,6 +10,9 @@ let currentTheme = "FARM";
 let customDifficulty = 5;
 let customTankerHp = 3;
 let customMovingLives = 3;
+let customActionBombInterval = 3.0;
+let customActionBombDamage = 1.5;
+let customActionBombRadius = 150;
 let timeLeft = 0,
   timeElapsed = 0,
   kills = 0,
@@ -19,6 +22,9 @@ let timeLeft = 0,
 let gameMode = "STORY",
   currentStage = 1;
 let configuredStartMode = "STORY";
+let actionBombCount = 0,
+  actionBombCharge = 0,
+  actionBombShockwave = 0;
 let bugs = [],
   particles = [];
 let cx = 0,
@@ -26,6 +32,7 @@ let cx = 0,
 let currentStorySequence = [],
   currentStoryIndex = 0;
 let storyOverlayHideTimer = null;
+let draftSettings = null;
 const keys = {};
 
 // ==========================================
@@ -212,6 +219,18 @@ const sprHeart = {
     [0, 0, 0, 0, 35, 0, 0, 0, 0],
   ],
 };
+
+const sprBomb = [
+  [0, 0, 0, 46, 46, 0, 0, 0, 0],
+  [0, 0, 46, 45, 46, 46, 0, 0, 0],
+  [0, 0, 0, 46, 0, 0, 0, 0, 0],
+  [0, 0, 35, 35, 35, 35, 35, 0, 0],
+  [0, 35, 41, 41, 41, 42, 41, 35, 0],
+  [35, 41, 41, 41, 42, 41, 41, 41, 35],
+  [35, 41, 42, 41, 41, 41, 42, 41, 35],
+  [0, 35, 41, 41, 41, 42, 41, 35, 0],
+  [0, 0, 35, 35, 35, 35, 35, 0, 0],
+];
 
 const sprBug = [
   [
@@ -422,9 +441,10 @@ const START_MODE_ORDER = ["STORY", "RANKING", "MOVING"];
 const START_MODE_LABELS = {
   STORY: "스토리 모드",
   RANKING: "무한 생존",
-  MOVING: "액션 생존",
+  MOVING: "액션 모드",
 };
 const DEFAULT_TOUCH_MODE_LIVES = 3;
+const ACTION_BOMB_BLAST_DURATION = 0.35;
 
 // ==========================================
 // 3. 엔진 코어 함수 (렌더링 & 오디오)
@@ -553,6 +573,15 @@ function playSound(type) {
     gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
     osc.start(now);
     osc.stop(now + 0.1);
+  } else if (type === "bomb") {
+    osc.type = "square";
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.start(now);
+    osc.stop(now + 0.35);
   } else if (type === "gameover") {
     osc.type = "square";
     osc.frequency.setValueAtTime(300, now);
@@ -782,8 +811,8 @@ class Bug {
       Greeny.takeDamage();
     }
   }
-  kill() {
-    playSound("kill");
+  kill(playSfx = true) {
+    if (playSfx) playSound("kill");
     createHitParticles(this.x, this.y, true, this.isTanker);
     kills++;
     document.getElementById("hud-kills").innerText = kills;
@@ -853,41 +882,247 @@ function createHitParticles(x, y, isKill, isTanker) {
     particles.push(new Particle(x, y, color));
 }
 
-function getAvailableStartModes() {
-  return isConsoleMode ? ["MOVING"] : START_MODE_ORDER;
+function formatActionStat(value) {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
 }
 
-function updateStartModeUi() {
-  const label = START_MODE_LABELS[configuredStartMode];
+function getActionBombChargeTime() {
+  return Math.max(0.5, customActionBombInterval);
+}
+
+function renderBombHudIcon() {
+  const iconCanvas = document.getElementById("hud-bomb-icon");
+  if (!iconCanvas) return;
+
+  const iconCtx = iconCanvas.getContext("2d");
+  iconCtx.imageSmoothingEnabled = false;
+  iconCtx.clearRect(0, 0, iconCanvas.width, iconCanvas.height);
+  iconCtx.save();
+  iconCtx.translate(iconCanvas.width / 2, iconCanvas.height / 2);
+  drawPixelArt(iconCtx, sprBomb, 3);
+  iconCtx.restore();
+}
+
+function createBombBurst(x, y) {
+  const colors =
+    currentTheme === "ZOMBIE"
+      ? ["#f59e0b", "#ef4444", "#7f1d1d", "#fcd34d"]
+      : ["#fbbf24", "#fb923c", "#ef4444", "#fde047"];
+
+  for (let i = 0; i < 26; i++) {
+    const particle = new Particle(
+      x,
+      y,
+      colors[Math.floor(Math.random() * colors.length)],
+    );
+    particle.life = 0.8;
+    particle.vx *= 1.5;
+    particle.vy *= 1.5;
+    particles.push(particle);
+  }
+}
+
+function getCurrentSettingsSnapshot() {
+  return {
+    currentTheme,
+    isMuted,
+    isConsoleMode,
+    customDifficulty,
+    customTankerHp,
+    customMovingLives,
+    customActionBombInterval,
+    customActionBombDamage,
+    customActionBombRadius,
+    configuredStartMode,
+  };
+}
+
+function updateThemePresentation() {
+  document.getElementById("desc-theme-title").innerText =
+    currentTheme === "ZOMBIE" ? "그린이의 좀비 방어" : "그린이의 농장 방어";
+}
+
+function getAvailableStartModes(settings = getCurrentSettingsSnapshot()) {
+  return settings.isConsoleMode ? ["MOVING"] : START_MODE_ORDER;
+}
+
+function syncConfiguredStartMode(settings) {
+  const availableModes = getAvailableStartModes(settings);
+  if (!availableModes.includes(settings.configuredStartMode)) {
+    settings.configuredStartMode = availableModes[0];
+  }
+  return settings;
+}
+
+function renderStartModeControl(settings) {
+  const label = START_MODE_LABELS[settings.configuredStartMode];
   const prevBtn = document.getElementById("btn-start-mode-prev");
   const nextBtn = document.getElementById("btn-start-mode-next");
-  const isFixed = getAvailableStartModes().length === 1;
+  const isFixed = getAvailableStartModes(settings).length === 1;
 
   document.getElementById("val-start-mode").innerText = label;
-  document.getElementById("intro-start-mode-hint").innerText =
-    `현재 시작 모드: ${label}`;
-
   prevBtn.disabled = isFixed;
   nextBtn.disabled = isFixed;
   prevBtn.style.opacity = isFixed ? 0.4 : 1;
   nextBtn.style.opacity = isFixed ? 0.4 : 1;
 }
 
-function syncConfiguredStartMode() {
-  const availableModes = getAvailableStartModes();
-  if (!availableModes.includes(configuredStartMode)) {
-    configuredStartMode = availableModes[0];
+function updateIntroStartModeHint() {
+  document.getElementById("intro-start-mode-hint").innerText =
+    `현재 시작 모드: ${START_MODE_LABELS[configuredStartMode]}`;
+}
+
+function renderSettingsModal(settings) {
+  document.getElementById("theme-toggle").checked =
+    settings.currentTheme === "ZOMBIE";
+  document.getElementById("mute-toggle").checked = settings.isMuted;
+  document.getElementById("console-toggle").checked = settings.isConsoleMode;
+  document.getElementById("val-moving-life").innerText =
+    settings.customMovingLives;
+  document.getElementById("val-bomb-interval").innerText =
+    `${formatActionStat(settings.customActionBombInterval)}초`;
+  document.getElementById("val-bomb-damage").innerText = formatActionStat(
+    settings.customActionBombDamage,
+  );
+  document.getElementById("val-bomb-range").innerText =
+    `${Math.round(settings.customActionBombRadius)}px`;
+  document.getElementById("val-tanker-hp").innerText = settings.customTankerHp;
+  document.getElementById("val-difficulty").innerText =
+    settings.customDifficulty;
+  renderStartModeControl(settings);
+}
+
+function applySettingsSnapshot(settings) {
+  currentTheme = settings.currentTheme;
+  isMuted = settings.isMuted;
+  isConsoleMode = settings.isConsoleMode;
+  customDifficulty = settings.customDifficulty;
+  customTankerHp = settings.customTankerHp;
+  customMovingLives = settings.customMovingLives;
+  customActionBombInterval = settings.customActionBombInterval;
+  customActionBombDamage = settings.customActionBombDamage;
+  customActionBombRadius = settings.customActionBombRadius;
+  configuredStartMode = settings.configuredStartMode;
+
+  createMap();
+  updateThemePresentation();
+  updateIntroStartModeHint();
+  updateActionBombHud();
+}
+
+function openSettingsModal() {
+  draftSettings = syncConfiguredStartMode({ ...getCurrentSettingsSnapshot() });
+  renderSettingsModal(draftSettings);
+  document.getElementById("ui-settings-modal").classList.remove("hidden");
+}
+
+function closeSettingsModal() {
+  document.getElementById("ui-settings-modal").classList.add("hidden");
+}
+
+function applySettingsChanges() {
+  if (!draftSettings) return;
+  applySettingsSnapshot(syncConfiguredStartMode({ ...draftSettings }));
+  draftSettings = null;
+  closeSettingsModal();
+}
+
+function cancelSettingsChanges() {
+  draftSettings = null;
+  closeSettingsModal();
+}
+
+function updateActionBombHud() {
+  const hud = document.getElementById("ui-action-bomb");
+  if (!hud) return;
+
+  const shouldShow = state === "PLAYING" && gameMode === "MOVING";
+  hud.classList.toggle("hidden", !shouldShow);
+  if (!shouldShow) return;
+
+  const chargeTime = getActionBombChargeTime();
+  const progress = Math.max(0, Math.min(1, actionBombCharge / chargeTime));
+  const remaining = Math.max(0, chargeTime - actionBombCharge);
+
+  document.getElementById("hud-bomb-count").innerText = `${actionBombCount}개`;
+  document.getElementById("hud-bomb-timer").innerText =
+    actionBombCount > 0
+      ? `다음 충전 ${remaining.toFixed(1)}초`
+      : `충전 중 ${remaining.toFixed(1)}초`;
+  document.getElementById("hud-bomb-progress").style.width =
+    `${progress * 100}%`;
+}
+
+function resetActionBombState() {
+  actionBombCount = 0;
+  actionBombCharge = 0;
+  actionBombShockwave = 0;
+  updateActionBombHud();
+}
+
+function detonateActionBomb() {
+  if (state !== "PLAYING" || gameMode !== "MOVING" || actionBombCount <= 0)
+    return;
+
+  actionBombCount--;
+  actionBombShockwave = ACTION_BOMB_BLAST_DURATION;
+  screenShake = Math.max(screenShake, 18);
+  playSound("bomb");
+  createBombBurst(Greeny.x, Greeny.y);
+
+  let hits = 0;
+  for (let i = bugs.length - 1; i >= 0; i--) {
+    const bug = bugs[i];
+    const dx = bug.x - Greeny.x;
+    const dy = bug.y - Greeny.y;
+    const radius = customActionBombRadius + bug.radius;
+
+    if (dx * dx + dy * dy > radius * radius) continue;
+
+    hits++;
+    bug.hp -= customActionBombDamage;
+
+    if (bug.hp <= 0) {
+      bug.kill(false);
+      bugs.splice(i, 1);
+    } else {
+      createHitParticles(bug.x, bug.y, false, bug.isTanker);
+    }
   }
-  updateStartModeUi();
+
+  if (hits === 0) createHitParticles(Greeny.x, Greeny.y, false, false);
+  updateActionBombHud();
+}
+
+function drawActionBombShockwave(ctx) {
+  if (actionBombShockwave <= 0) return;
+
+  const progress = 1 - actionBombShockwave / ACTION_BOMB_BLAST_DURATION;
+  const alpha = Math.max(0, 1 - progress);
+  const radius = 40 + customActionBombRadius * progress;
+
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.8;
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2;
+    const px = Greeny.x + Math.cos(angle) * radius;
+    const py = Greeny.y + Math.sin(angle) * radius;
+
+    ctx.fillStyle = i % 2 === 0 ? "#fde047" : "#fb923c";
+    ctx.fillRect(Math.floor(px / 4) * 4, Math.floor(py / 4) * 4, 8, 8);
+  }
+  ctx.restore();
 }
 
 function cycleConfiguredStartMode(direction) {
-  const availableModes = getAvailableStartModes();
-  const currentIndex = availableModes.indexOf(configuredStartMode);
+  if (!draftSettings) return;
+
+  const availableModes = getAvailableStartModes(draftSettings);
+  const currentIndex = availableModes.indexOf(draftSettings.configuredStartMode);
   const nextIndex =
     (currentIndex + direction + availableModes.length) % availableModes.length;
-  configuredStartMode = availableModes[nextIndex];
-  updateStartModeUi();
+  draftSettings.configuredStartMode = availableModes[nextIndex];
+  renderStartModeControl(draftSettings);
 }
 
 function startConfiguredMode() {
@@ -902,6 +1137,13 @@ function startConfiguredMode() {
 
 function getGreenyLivesForMode(mode) {
   return mode === "MOVING" ? customMovingLives : DEFAULT_TOUCH_MODE_LIVES;
+}
+
+function decayScreenShake(dt) {
+  if (screenShake <= 0) return;
+
+  screenShake -= dt * 60;
+  if (screenShake < 0) screenShake = 0;
 }
 
 // ==========================================
@@ -966,6 +1208,7 @@ function resetRunPresentation() {
   screenShake = 0;
   clearInputState();
   resetGreenyState();
+  resetActionBombState();
   document.getElementById("damageOverlay").style.opacity = 0;
 }
 
@@ -978,6 +1221,7 @@ function goHome() {
   document.getElementById("ui-intro").classList.remove("hidden");
   document.getElementById("btn-settings-fab").classList.remove("hidden");
   resetRunPresentation();
+  updateActionBombHud();
 }
 
 function updateStoryDialog() {
@@ -1010,6 +1254,7 @@ function showStorySynopsis() {
   currentStorySequence = STORY_CONTENT[currentTheme][currentStage - 1];
   currentStoryIndex = 0;
   updateStoryDialog();
+  updateActionBombHud();
 }
 
 function startGame(mode) {
@@ -1031,6 +1276,7 @@ function startGame(mode) {
   document
     .getElementById("ui-dpad")
     .classList.toggle("hidden", !(isConsoleMode && mode === "MOVING"));
+  updateActionBombHud();
   lastTime = performance.now();
 }
 
@@ -1042,6 +1288,7 @@ function triggerGameOver() {
   document.getElementById("result-time-lose").innerText =
     timeElapsed.toFixed(1) + "초";
   document.getElementById("result-kills-lose").innerText = kills;
+  updateActionBombHud();
 }
 
 function triggerWin() {
@@ -1052,6 +1299,7 @@ function triggerWin() {
   document.getElementById("result-score").innerText = (
     kills * 100
   ).toLocaleString();
+  updateActionBombHud();
 }
 
 function pauseGame() {
@@ -1107,10 +1355,12 @@ function update(dt) {
       particles[i].update(dt);
       if (particles[i].life <= 0) particles.splice(i, 1);
     }
-    if (screenShake > 0) {
-      screenShake -= dt * 60;
-      if (screenShake < 0) screenShake = 0;
+    if (actionBombShockwave > 0) {
+      actionBombShockwave -= dt;
+      if (actionBombShockwave < 0) actionBombShockwave = 0;
     }
+    decayScreenShake(dt);
+    updateActionBombHud();
     return;
   }
 
@@ -1126,6 +1376,15 @@ function update(dt) {
   } else {
     timeElapsed += dt;
     document.getElementById("hud-time").innerText = timeElapsed.toFixed(1);
+  }
+
+  if (gameMode === "MOVING") {
+    const chargeTime = getActionBombChargeTime();
+    actionBombCharge += dt;
+    while (actionBombCharge >= chargeTime) {
+      actionBombCharge -= chargeTime;
+      actionBombCount++;
+    }
   }
 
   spawnTimer += dt;
@@ -1170,6 +1429,14 @@ function update(dt) {
     particles[i].update(dt);
     if (particles[i].life <= 0) particles.splice(i, 1);
   }
+
+  if (actionBombShockwave > 0) {
+    actionBombShockwave -= dt;
+    if (actionBombShockwave < 0) actionBombShockwave = 0;
+  }
+
+  decayScreenShake(dt);
+  updateActionBombHud();
 }
 
 function draw(time) {
@@ -1187,6 +1454,7 @@ function draw(time) {
 
   particles.forEach((p) => p.draw(ctx));
   bugs.forEach((b) => b.draw(ctx, time));
+  drawActionBombShockwave(ctx);
 
   if ((state !== "WIN" && state !== "GAMEOVER") || state === "INTRO")
     Greeny.draw(ctx, time);
@@ -1215,6 +1483,10 @@ window.onload = () => {
 
   window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
+    if (e.code === "Space") {
+      e.preventDefault();
+      if (!e.repeat) detonateActionBomb();
+    }
     if (e.key === "Escape") state === "PLAYING" ? pauseGame() : resumeGame();
   });
   window.addEventListener("keyup", (e) => {
@@ -1232,49 +1504,106 @@ window.onload = () => {
     { passive: false },
   );
 
-  document.getElementById("btn-settings-fab").onclick = () =>
-    document.getElementById("ui-settings-modal").classList.remove("hidden");
-  document.getElementById("btn-close-settings").onclick = () =>
-    document.getElementById("ui-settings-modal").classList.add("hidden");
+  document.getElementById("btn-settings-fab").onclick = openSettingsModal;
+  document.getElementById("btn-close-settings").onclick = cancelSettingsChanges;
+  document.getElementById("btn-cancel-settings").onclick =
+    cancelSettingsChanges;
+  document.getElementById("btn-apply-settings").onclick = applySettingsChanges;
   document.getElementById("theme-toggle").onchange = (e) => {
-    currentTheme = e.target.checked ? "ZOMBIE" : "FARM";
-    createMap();
-    document.getElementById("desc-theme-title").innerText =
-      currentTheme === "ZOMBIE" ? "그린이의 좀비 방어" : "그린이의 농장 방어";
+    if (!draftSettings) return;
+    draftSettings.currentTheme = e.target.checked ? "ZOMBIE" : "FARM";
   };
-  document.getElementById("mute-toggle").onchange = (e) =>
-    (isMuted = e.target.checked);
+  document.getElementById("mute-toggle").onchange = (e) => {
+    if (!draftSettings) return;
+    draftSettings.isMuted = e.target.checked;
+  };
   document.getElementById("console-toggle").onchange = (e) => {
-    isConsoleMode = e.target.checked;
-    syncConfiguredStartMode();
+    if (!draftSettings) return;
+    draftSettings.isConsoleMode = e.target.checked;
+    syncConfiguredStartMode(draftSettings);
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-start-mode-prev").onclick = () =>
     cycleConfiguredStartMode(-1);
   document.getElementById("btn-start-mode-next").onclick = () =>
     cycleConfiguredStartMode(1);
   document.getElementById("btn-moving-life-plus").onclick = () => {
-    if (customMovingLives < 9) customMovingLives++;
-    document.getElementById("val-moving-life").innerText = customMovingLives;
+    if (!draftSettings) return;
+    if (draftSettings.customMovingLives < 9) draftSettings.customMovingLives++;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-moving-life-minus").onclick = () => {
-    if (customMovingLives > 1) customMovingLives--;
-    document.getElementById("val-moving-life").innerText = customMovingLives;
+    if (!draftSettings) return;
+    if (draftSettings.customMovingLives > 1) draftSettings.customMovingLives--;
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-interval-plus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombInterval < 10)
+      draftSettings.customActionBombInterval += 0.5;
+    draftSettings.customActionBombInterval = Number(
+      draftSettings.customActionBombInterval.toFixed(1),
+    );
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-interval-minus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombInterval > 1)
+      draftSettings.customActionBombInterval -= 0.5;
+    draftSettings.customActionBombInterval = Number(
+      draftSettings.customActionBombInterval.toFixed(1),
+    );
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-damage-plus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombDamage < 10)
+      draftSettings.customActionBombDamage += 0.5;
+    draftSettings.customActionBombDamage = Number(
+      draftSettings.customActionBombDamage.toFixed(1),
+    );
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-damage-minus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombDamage > 0.5)
+      draftSettings.customActionBombDamage -= 0.5;
+    draftSettings.customActionBombDamage = Number(
+      draftSettings.customActionBombDamage.toFixed(1),
+    );
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-range-plus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombRadius < 320)
+      draftSettings.customActionBombRadius += 10;
+    renderSettingsModal(draftSettings);
+  };
+  document.getElementById("btn-bomb-range-minus").onclick = () => {
+    if (!draftSettings) return;
+    if (draftSettings.customActionBombRadius > 60)
+      draftSettings.customActionBombRadius -= 10;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-hp-plus").onclick = () => {
-    if (customTankerHp < 20) customTankerHp++;
-    document.getElementById("val-tanker-hp").innerText = customTankerHp;
+    if (!draftSettings) return;
+    if (draftSettings.customTankerHp < 20) draftSettings.customTankerHp++;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-hp-minus").onclick = () => {
-    if (customTankerHp > 1) customTankerHp--;
-    document.getElementById("val-tanker-hp").innerText = customTankerHp;
+    if (!draftSettings) return;
+    if (draftSettings.customTankerHp > 1) draftSettings.customTankerHp--;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-diff-plus").onclick = () => {
-    if (customDifficulty < 10) customDifficulty++;
-    document.getElementById("val-difficulty").innerText = customDifficulty;
+    if (!draftSettings) return;
+    if (draftSettings.customDifficulty < 10) draftSettings.customDifficulty++;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-diff-minus").onclick = () => {
-    if (customDifficulty > 1) customDifficulty--;
-    document.getElementById("val-difficulty").innerText = customDifficulty;
+    if (!draftSettings) return;
+    if (draftSettings.customDifficulty > 1) draftSettings.customDifficulty--;
+    renderSettingsModal(draftSettings);
   };
   document.getElementById("btn-start-game").onclick = startConfiguredMode;
   document.getElementById("btn-start-stage").onclick = () => {
@@ -1317,6 +1646,10 @@ window.onload = () => {
 
   // 화면 및 캔버스 초기 설정
   resize();
-  syncConfiguredStartMode();
+  renderBombHudIcon();
+  updateThemePresentation();
+  updateIntroStartModeHint();
+  renderSettingsModal(syncConfiguredStartMode(getCurrentSettingsSnapshot()));
+  updateActionBombHud();
   requestAnimationFrame(gameLoop);
 };
