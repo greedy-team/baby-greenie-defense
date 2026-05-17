@@ -17,6 +17,7 @@ let timeLeft = 0,
   screenShake = 0;
 let gameMode = "STORY",
   currentStage = 1;
+let configuredStartMode = "STORY";
 let bugs = [],
   particles = [];
 let cx = 0,
@@ -414,6 +415,13 @@ const STORY_CONTENT = {
       },
     ],
   ],
+};
+
+const START_MODE_ORDER = ["STORY", "RANKING", "MOVING"];
+const START_MODE_LABELS = {
+  STORY: "스토리 모드",
+  RANKING: "무한 생존",
+  MOVING: "액션 생존",
 };
 
 // ==========================================
@@ -841,6 +849,53 @@ function createHitParticles(x, y, isKill, isTanker) {
     particles.push(new Particle(x, y, color));
 }
 
+function getAvailableStartModes() {
+  return isConsoleMode ? ["MOVING"] : START_MODE_ORDER;
+}
+
+function updateStartModeUi() {
+  const label = START_MODE_LABELS[configuredStartMode];
+  const prevBtn = document.getElementById("btn-start-mode-prev");
+  const nextBtn = document.getElementById("btn-start-mode-next");
+  const isFixed = getAvailableStartModes().length === 1;
+
+  document.getElementById("val-start-mode").innerText = label;
+  document.getElementById("intro-start-mode-hint").innerText =
+    `현재 시작 모드: ${label}`;
+
+  prevBtn.disabled = isFixed;
+  nextBtn.disabled = isFixed;
+  prevBtn.style.opacity = isFixed ? 0.4 : 1;
+  nextBtn.style.opacity = isFixed ? 0.4 : 1;
+}
+
+function syncConfiguredStartMode() {
+  const availableModes = getAvailableStartModes();
+  if (!availableModes.includes(configuredStartMode)) {
+    configuredStartMode = availableModes[0];
+  }
+  updateStartModeUi();
+}
+
+function cycleConfiguredStartMode(direction) {
+  const availableModes = getAvailableStartModes();
+  const currentIndex = availableModes.indexOf(configuredStartMode);
+  const nextIndex =
+    (currentIndex + direction + availableModes.length) % availableModes.length;
+  configuredStartMode = availableModes[nextIndex];
+  updateStartModeUi();
+}
+
+function startConfiguredMode() {
+  if (configuredStartMode === "STORY") {
+    currentStage = 1;
+    showStorySynopsis();
+    return;
+  }
+
+  startGame(configuredStartMode);
+}
+
 // ==========================================
 // 5. 게임 흐름 컨트롤
 // ==========================================
@@ -964,6 +1019,9 @@ function startGame(mode) {
   document.getElementById("ui-intro").classList.add("hidden");
   document.getElementById("btn-settings-fab").classList.add("hidden");
   document.getElementById("ui-hud").classList.remove("hidden");
+  document
+    .getElementById("ui-dpad")
+    .classList.toggle("hidden", !(isConsoleMode && mode === "MOVING"));
   lastTime = performance.now();
 }
 
@@ -1179,13 +1237,12 @@ window.onload = () => {
     (isMuted = e.target.checked);
   document.getElementById("console-toggle").onchange = (e) => {
     isConsoleMode = e.target.checked;
-    document.getElementById("btn-mode-story").style.opacity = isConsoleMode
-      ? 0.4
-      : 1;
-    document.getElementById("btn-mode-ranking").style.opacity = isConsoleMode
-      ? 0.4
-      : 1;
+    syncConfiguredStartMode();
   };
+  document.getElementById("btn-start-mode-prev").onclick = () =>
+    cycleConfiguredStartMode(-1);
+  document.getElementById("btn-start-mode-next").onclick = () =>
+    cycleConfiguredStartMode(1);
   document.getElementById("btn-hp-plus").onclick = () => {
     if (customTankerHp < 20) customTankerHp++;
     document.getElementById("val-tanker-hp").innerText = customTankerHp;
@@ -1202,20 +1259,7 @@ window.onload = () => {
     if (customDifficulty > 1) customDifficulty--;
     document.getElementById("val-difficulty").innerText = customDifficulty;
   };
-  document.getElementById("btn-mode-story").onclick = () => {
-    if (!isConsoleMode) {
-      currentStage = 1;
-      showStorySynopsis();
-    }
-  };
-  document.getElementById("btn-mode-ranking").onclick = () => {
-    if (!isConsoleMode) startGame("RANKING");
-  };
-  document.getElementById("btn-mode-moving").onclick = () => {
-    startGame("MOVING");
-    if (isConsoleMode)
-      document.getElementById("ui-dpad").classList.remove("hidden");
-  };
+  document.getElementById("btn-start-game").onclick = startConfiguredMode;
   document.getElementById("btn-start-stage").onclick = () => {
     currentStoryIndex++;
     if (currentStoryIndex < currentStorySequence.length) updateStoryDialog();
@@ -1256,5 +1300,6 @@ window.onload = () => {
 
   // 화면 및 캔버스 초기 설정
   resize();
+  syncConfiguredStartMode();
   requestAnimationFrame(gameLoop);
 };

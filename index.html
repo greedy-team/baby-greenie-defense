@@ -82,25 +82,19 @@
           해충들로부터 농장을 지키세요!
         </p>
 
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2">
           <button
-            id="btn-mode-story"
+            id="btn-start-game"
             class="stardew-btn w-full font-bold py-3 px-6 text-lg"
           >
-            스토리 모드
+            시작하기
           </button>
-          <button
-            id="btn-mode-ranking"
-            class="stardew-btn stardew-btn-blue w-full font-bold py-3 px-6 text-lg"
+          <p
+            id="intro-start-mode-hint"
+            class="text-xs text-yellow-900 font-bold text-center"
           >
-            무한 생존 (랭킹)
-          </button>
-          <button
-            id="btn-mode-moving"
-            class="stardew-btn stardew-btn-red w-full font-bold py-3 px-6 text-lg"
-          >
-            액션 생존 (무빙)
-          </button>
+            현재 시작 모드: 스토리 모드
+          </p>
         </div>
 
         <div
@@ -206,6 +200,35 @@
                 class="w-10 h-5 bg-gray-400 rounded-full peer-checked:bg-blue-600"
               ></div>
             </label>
+          </div>
+          <div
+            id="settings-start-mode-box"
+            class="flex items-center justify-between bg-orange-50/50 p-2 px-3 rounded-lg border-2 border-orange-200"
+          >
+            <span
+              id="label-start-mode"
+              class="text-sm font-bold text-yellow-900"
+              >🚀 시작하기 모드</span
+            >
+            <div class="flex items-center gap-2">
+              <button
+                id="btn-start-mode-prev"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                -
+              </button>
+              <span
+                id="val-start-mode"
+                class="font-bold min-w-[96px] text-center text-xs"
+                >스토리 모드</span
+              >
+              <button
+                id="btn-start-mode-next"
+                class="bg-gray-200 w-6 h-6 rounded-md font-bold shadow-sm"
+              >
+                +
+              </button>
+            </div>
           </div>
           <div
             id="settings-hp-box"
